@@ -11,7 +11,8 @@ from separate part and assembly files.
 | **Project Parameters** | A part file | Shared dimensions (`ply_thickness`, `exhibit_width`...) that every linked part follows. |
 | **Part Namer** | A part or assembly file | Sets name, part number, BOM description (and material for parts). Renames and files it to match. |
 
-Requires a current Fusion (January 2026 or later). Tested on Mac.
+Works on **Mac and Windows**: the same download runs on both. Requires a current Fusion
+(January 2026 or later). Tested on Mac.
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 ## Download
@@ -40,13 +41,20 @@ CMD-HELLO - Hello Exhibit            <- org code, project code, name
   top-level assembly's description in the Data Panel: `[DMD] REF VIEW: ...`.
   You can add your own notes before `[DMD]`. Leave the `[DMD]` part alone.
 
-## Install (Mac)
+## Install
+
+The same `DMDProjectTools` folder works on Mac and Windows. Only where you put it differs.
 
 1. **If you used the old Part Namer, remove it first:** Utilities > ADD-INS > Scripts and Add-Ins (Shift+S),
    select PartNamer, click **Stop**, then remove it from the list. Delete its folder.
-2. Unzip. Put the `DMDProjectTools` folder (keep that exact name) somewhere permanent, for example
-   `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/`
-   (Finder > Cmd+Shift+G and paste the path).
+2. Unzip. Put the `DMDProjectTools` folder (keep that exact name) in Fusion's add-ins folder:
+   - **Mac:** `~/Library/Application Support/Autodesk/Autodesk Fusion 360/API/AddIns/`
+     (Finder > Cmd+Shift+G and paste the path)
+   - **Windows:** `%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\`
+     (press Windows+R, paste the path, press Enter)
+
+   Any other permanent folder works too, as long as you can write to it (the add-in saves a
+   small `cache` folder inside itself to open faster).
 3. In Scripts and Add-Ins: **+** > "Script or add-in from device" > pick the folder,
    then **Run**. Tick **Run on Startup**.
 4. Four icons appear on Utilities > ADD-INS: a folder (New Project), a cube (New Part),

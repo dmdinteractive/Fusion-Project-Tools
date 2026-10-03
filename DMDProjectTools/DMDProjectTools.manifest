@@ -6,7 +6,7 @@
     "description": {
         "": "DMD Project Tools: set up projects with standard folders, create numbered linked parts, name parts and assemblies for clean BOMs, and share parameters across parts."
     },
-    "version": "2.4.0",
+    "version": "2.4.1",
     "runOnStartup": true,
     "supportedOS": "windows|mac",
     "editEnabled": true

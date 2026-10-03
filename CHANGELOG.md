@@ -2,6 +2,11 @@
 
 Versions match `"version"` in `DMDProjectTools/DMDProjectTools.manifest`.
 
+## 2.4.1
+- Windows: install steps added to the README (the same download runs on Mac and Windows).
+- Cache files are always read and written as UTF-8, so material names with accents or
+  symbols behave the same on Windows as on Mac.
+
 ## 2.4.0
 - Project parameters are linked and starred in every part automatically: on opening a
   fabricated part, after every Update, and for new parts made with New Part.

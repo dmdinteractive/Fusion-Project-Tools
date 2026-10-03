@@ -304,7 +304,7 @@ def _cache_path():
 
 def _load_material_cache():
     try:
-        with open(_cache_path()) as fh:
+        with open(_cache_path(), encoding="utf-8") as fh:
             return json.load(fh)
     except Exception:
         return {}
@@ -313,7 +313,7 @@ def _load_material_cache():
 def _save_material_cache(data):
     try:
         os.makedirs(CACHE_DIR, exist_ok=True)
-        with open(_cache_path(), "w") as fh:
+        with open(_cache_path(), "w", encoding="utf-8") as fh:
             json.dump(data, fh)
     except Exception:
         pass
@@ -432,7 +432,7 @@ def _params_cache_path(project):
 def load_params_cache(project):
     """The last parameter list this add-in saw for the project (or None)."""
     try:
-        with open(_params_cache_path(project)) as fh:
+        with open(_params_cache_path(project), encoding="utf-8") as fh:
             return json.load(fh)
     except Exception:
         return None
@@ -441,7 +441,7 @@ def load_params_cache(project):
 def save_params_cache(project, params):
     try:
         os.makedirs(CACHE_DIR, exist_ok=True)
-        with open(_params_cache_path(project), "w") as fh:
+        with open(_params_cache_path(project), "w", encoding="utf-8") as fh:
             json.dump({"saved": time.strftime("%Y-%m-%d %H:%M"), "params": params}, fh)
     except Exception:
         pass

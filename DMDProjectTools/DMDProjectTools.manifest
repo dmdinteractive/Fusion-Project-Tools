@@ -4,9 +4,9 @@
     "id": "a1cce4b2-ca50-4b87-ab82-64a42c41a446",
     "author": "DMD Interactive",
     "description": {
-        "": "DMD Project Tools: set up projects with standard folders, create numbered linked parts, name parts and assemblies for clean BOMs, and share parameters across parts."
+        "": "DMD Project Tools: standard project folders, numbered parts, noun-first BOM naming, materials, shared parameters, and McMaster-Carr parts as their own files."
     },
-    "version": "2.4.1",
+    "version": "2.5.0",
     "runOnStartup": true,
     "supportedOS": "windows|mac",
     "editEnabled": true

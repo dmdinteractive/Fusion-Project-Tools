@@ -471,3 +471,26 @@ def param_line(name, expression, comment=""):
     """One line of the parameter list shown in the dialog."""
     line = "{} = {}".format(name, expression)
     return line + ("   // " + comment if comment else "")
+
+
+# ---------------------------------------------------------------------------
+# McMaster-Carr
+# ---------------------------------------------------------------------------
+
+MCMASTER = "McMaster-Carr"
+
+# McMaster numbers: 4-5 digits, a letter, 1-4 digits (91251A540, 6655K11, 1346K17).
+# Fusion names an inserted McMaster part with its number, sometimes followed by text.
+_MCMASTER_RE = re.compile(r"(?<![A-Za-z0-9])(\d{4,5}[A-Za-z]\d{1,4})(?![A-Za-z0-9])")
+
+
+def find_mcmaster_number(text):
+    """'91251A540' or '91251A540_Socket Head Screw' -> '91251A540' ('' if none)."""
+    m = _MCMASTER_RE.search(text or "")
+    return m.group(1).upper() if m else ""
+
+
+def mcmaster_tag(number):
+    """The text stored with a McMaster part file, so the tool can find it again:
+    'DIST PN (McMaster-Carr): 91251A540'."""
+    return vendor_text(MCMASTER, "", (number or "").upper())

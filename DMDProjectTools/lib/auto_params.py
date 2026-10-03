@@ -178,6 +178,7 @@ def expect_new_part(file_name, project, code, assembly_doc):
     if not AUTO_LINK or fd.find_params_file(project, code) is None:
         return False
     _expected[file_name] = {"project": project, "code": code, "assembly": assembly_doc}
+    uh.on_upload(file_name, "Linking new part", _link_new_part)
     return True
 
 
@@ -242,16 +243,6 @@ class _CommandDoneHandler(adsk.core.ApplicationCommandEventHandler):
                          lambda: ensure_ready(fd.app().activeDocument, allow_link=False))
 
 
-class _UploadHandler(adsk.core.DataEventHandler):
-    def notify(self, args):
-        try:
-            f = args.file
-        except Exception:
-            return
-        if f is not None and f.name in _expected:
-            uh.run_later("Linking new part", lambda: _link_new_part(f))
-
-
 _wired = []
 
 
@@ -259,8 +250,7 @@ def start():
     app = fd.app()
     for event, handler in ((app.documentActivated, _DocHandler()),
                            (app.documentOpened, _DocHandler()),
-                           (app.userInterface.commandTerminated, _CommandDoneHandler()),
-                           (app.dataFileComplete, _UploadHandler())):
+                           (app.userInterface.commandTerminated, _CommandDoneHandler())):
         event.add(handler)
         _wired.append((event, handler))
         uh.handlers.append(handler)

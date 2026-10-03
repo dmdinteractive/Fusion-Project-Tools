@@ -46,6 +46,35 @@ def start_deferred():
     h = _DeferredHandler()
     _event.add(h)
     handlers.append(h)
+    up = _UploadHandler()
+    _app.dataFileComplete.add(up)
+    handlers.append(up)
+    _upload_hook.append(up)
+
+
+# ---------------------------------------------------------------------------
+# "When Fusion finishes uploading this file, do ..."
+# ---------------------------------------------------------------------------
+
+_upload_waiters = {}      # file name -> [(label, fn(data_file)), ...]
+_upload_hook = []
+
+
+class _UploadHandler(adsk.core.DataEventHandler):
+    def notify(self, args):
+        try:
+            f = args.file
+            waiting = _upload_waiters.pop(f.name, [])
+        except Exception:
+            return
+        for label, fn in waiting:
+            run_later(label, lambda fn=fn, f=f: fn(f))
+
+
+def on_upload(file_name, label, fn):
+    """Run fn(data_file) once Fusion reports the file named file_name has
+    finished uploading (new files only exist in the cloud after that)."""
+    _upload_waiters.setdefault(file_name, []).append((label, fn))
 
 
 def stop_deferred():
@@ -53,6 +82,12 @@ def stop_deferred():
         _app.unregisterCustomEvent(DEFERRED_EVENT_ID)
     except Exception:
         pass
+    for h in _upload_hook:
+        try:
+            _app.dataFileComplete.remove(h)
+        except Exception:
+            pass
+    _upload_hook.clear()
 
 
 def run_later(label, fn):

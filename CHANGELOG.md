@@ -2,6 +2,14 @@
 
 Versions match `"version"` in `DMDProjectTools/DMDProjectTools.manifest`.
 
+## 2.5.0
+- New **McMaster to Part** button: turns a McMaster-Carr part inserted into a Hybrid
+  assembly into its own numbered part file in `03 PURCHASED` (McMaster number in the
+  description) and replaces every copy with the linked file in the same position.
+  Reuses the existing file when the same McMaster number is already in the project.
+- Internal: one shared "when this upload finishes" helper, used by New Part's automatic
+  parameter linking and by McMaster to Part.
+
 ## 2.4.1
 - Windows: install steps added to the README (the same download runs on Mac and Windows).
 - Cache files are always read and written as UTF-8, so material names with accents or

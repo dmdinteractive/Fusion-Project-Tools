@@ -1,11 +1,12 @@
 """
 DMDProjectTools.py - what Fusion runs when the add-in starts and stops.
 
-It adds four buttons to Utilities > ADD-INS (promoted to the toolbar):
+It adds five buttons to Utilities > ADD-INS (promoted to the toolbar):
     New Project  - commands/new_project.py
     New Part     - commands/new_part.py
     Part Namer   - commands/part_namer.py
     Project Parameters - commands/project_params.py
+    McMaster to Part   - commands/mcmaster_to_part.py
 
 The naming rules (folders, part number format, flagged words, material
 keywords) all live in lib/naming_logic.py.
@@ -18,7 +19,7 @@ import adsk.core
 
 from .lib import ui_helpers as uh
 from .lib import auto_params
-from .commands import new_project, new_part, part_namer, project_params
+from .commands import new_project, new_part, part_namer, project_params, mcmaster_to_part
 
 PANEL_ID = "SolidScriptsAddinsPanel"          # Utilities > ADD-INS
 WORKSPACE_ID = "FusionSolidEnvironment"
@@ -29,6 +30,7 @@ COMMANDS = [
     (new_part, os.path.join(HERE, "resources", "new_part")),
     (part_namer, os.path.join(HERE, "resources", "part_namer")),
     (project_params, os.path.join(HERE, "resources", "project_params")),
+    (mcmaster_to_part, os.path.join(HERE, "resources", "mcmaster_to_part")),
 ]
 
 

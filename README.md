@@ -9,6 +9,7 @@ from separate part and assembly files.
 | **New Project** | Anywhere | Creates `CMD-HELLO - Hello Exhibit` with the standard folders and an empty top-level Assembly `CMD-HELLO-000 HELLO EXHIBIT`. Can also bring an existing project up to standard. |
 | **New Part** | An assembly | Creates the next numbered linked part (or subassembly) in the right folder, e.g. `CMD-HELLO-015 BRACKET, MOTOR MOUNT, LH` in `02 FABRICATED`. |
 | **Project Parameters** | A part file | Shared dimensions (`ply_thickness`, `exhibit_width`...) that every linked part follows. |
+| **McMaster to Part** | A Hybrid assembly | Turns an inserted McMaster-Carr part into its own numbered part file in `03 PURCHASED` and swaps it in. |
 | **Part Namer** | A part or assembly file | Sets name, part number, BOM description (and material for parts). Renames and files it to match. |
 
 Works on **Mac and Windows**: the same download runs on both. Requires a current Fusion
@@ -57,8 +58,8 @@ The same `DMDProjectTools` folder works on Mac and Windows. Only where you put i
    small `cache` folder inside itself to open faster).
 3. In Scripts and Add-Ins: **+** > "Script or add-in from device" > pick the folder,
    then **Run**. Tick **Run on Startup**.
-4. Four icons appear on Utilities > ADD-INS: a folder (New Project), a cube (New Part),
-   a tag (Part Namer) and a ruler (Project Parameters).
+4. Five icons appear on Utilities > ADD-INS: a folder (New Project), a cube (New Part),
+   a tag (Part Namer), a ruler (Project Parameters) and a hex nut (McMaster to Part).
 
 Needs a current Fusion. New Part uses a January 2026 API.
 
@@ -98,6 +99,31 @@ Part Namer changes to fit an assembly file:
   locked at 000 and it stays in `00 ASSEMBLY`, because the tools find the project's
   reference view through that file. Its name is the exhibit name, without ASSEMBLY added.
   Its `[DMD]` description in the Data Panel is never changed by Part Namer.
+
+## McMaster-Carr parts
+
+Fusion only allows *Insert McMaster-Carr Component* in Hybrid (and Assembly) files, and it
+puts the part *inside* that file, named with its McMaster number. To keep one file per
+part like everything else:
+
+1. In your assembly (Hybrid), use Insert > Insert McMaster-Carr Component as usual.
+   Place as many copies as you need.
+2. **Before adding joints**, click **McMaster to Part** and select the inserted part.
+3. The McMaster number is filled in from the part's name. Type a noun-first name such as
+   `SCREW`, `SOCKET HEAD CAP`, `1/4-20 x 1`. The next part number is suggested.
+4. Click Convert. The part is saved as `CMD-HELLO-008 SCREW, SOCKET HEAD CAP, 1/4-20 X 1`
+   in `03 PURCHASED` with `DIST PN (McMaster-Carr): 91251A540` as its description. Once
+   Fusion finishes uploading it (a few seconds), **every copy** in the assembly is replaced
+   by the linked file in the same position, including copies inside subassemblies that
+   live in this file.
+5. Save the assembly.
+
+If that McMaster number already has a file in the project, the tool reuses it instead of
+making a duplicate. You just select and click Convert.
+
+**Why before joints:** Fusion can't carry joints over from an embedded part to a linked
+file, so any joints on it are removed (the dialog warns you how many). Copies inside a
+linked subassembly can't be swapped from here; the message tells you if any were skipped.
 
 ## Shared parameters
 
@@ -204,6 +230,7 @@ Everything is in `DMDProjectTools/lib/naming_logic.py`:
 - `DMDProjectTools.py`: adds and removes the three buttons
 - `commands/new_project.py`, `commands/new_part.py`, `commands/part_namer.py`: one per button
 - `DMDProjectTools/lib/naming_logic.py`: the naming rules (no Fusion code, safe to edit)
+- `DMDProjectTools/commands/mcmaster_to_part.py`: the McMaster to Part button
 - `DMDProjectTools/lib/auto_params.py`: links parts and stars project parameters in the background
 - `DMDProjectTools/lib/fusion_data.py`: finds projects, folders, files, part numbers and materials in Fusion
 - `lib/ui_helpers.py`: shared dialog plumbing. It also runs file work after a dialog closes,

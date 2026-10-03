@@ -1,0 +1,13 @@
+{
+    "autodeskProduct": "Fusion",
+    "type": "addin",
+    "id": "a1cce4b2-ca50-4b87-ab82-64a42c41a446",
+    "author": "DMD Interactive",
+    "description": {
+        "": "DMD Project Tools: set up projects with standard folders, create numbered linked parts, name parts and assemblies for clean BOMs, and share parameters across parts."
+    },
+    "version": "2.4.0",
+    "runOnStartup": true,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

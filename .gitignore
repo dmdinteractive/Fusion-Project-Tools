@@ -1,0 +1,5 @@
+# Created by the add-in on each computer; never shared
+DMDProjectTools/cache/
+__pycache__/
+*.pyc
+.DS_Store

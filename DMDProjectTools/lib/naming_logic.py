@@ -62,7 +62,8 @@ NAME_SEPARATOR = ", "
 # Separator between sections of the description.
 DESC_SEPARATOR = " | "
 
-# Starter list for the "Common nouns" dropdown. Edit freely.
+# Old starter noun list, kept so nothing that imports it breaks. The
+# drop-downs now use lib/word_lists.py (bigger, plus your own file).
 COMMON_NOUNS = [
     "ANGLE", "BASE", "BEARING", "BLOCK", "BRACKET", "BUTTON", "CABLE",
     "CHANNEL", "CLEAT", "COVER", "DOOR", "ENCLOSURE", "FRAME", "GRAPHIC",
@@ -408,6 +409,21 @@ def location_text(location, ref_view):
         return ""
     view = (ref_view or "").strip() or "UNDEFINED"
     return "LOC: {} (REF VIEW: {})".format(location, view)
+
+
+def hand_location_text(hand, location, ref_view):
+    """Hand and location share one reference view, so it is written once:
+    'LH', ''                -> 'LH PER REF VIEW: VIEWED FROM VISITOR SIDE'
+    '', 'NEAR PHONE'        -> 'LOC: NEAR PHONE (REF VIEW: VIEWED FROM VISITOR SIDE)'
+    'LH', 'NEAR PHONE'      -> 'LH, LOC: NEAR PHONE (PER REF VIEW: VIEWED FROM VISITOR SIDE)'"""
+    location = (location or "").strip()
+    has_hand = hand in OPPOSITE_HAND
+    if has_hand and location:
+        view = (ref_view or "").strip() or "UNDEFINED"
+        return "{}, LOC: {} (PER REF VIEW: {})".format(hand, location, view)
+    if has_hand:
+        return hand_text(hand, ref_view)
+    return location_text(location, ref_view)
 
 
 def compose_description(sections, upper=True):

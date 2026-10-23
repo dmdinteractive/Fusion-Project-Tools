@@ -20,6 +20,7 @@ import adsk.fusion
 from ..lib import naming_logic as nl
 from ..lib import fusion_data as fd
 from ..lib import ui_helpers as uh
+from ..lib import name_pickers as npk
 from ..lib import auto_params
 from ..lib.ui_helpers import find, val, text
 
@@ -27,7 +28,6 @@ CMD_ID = "dmdNewPart"
 CMD_NAME = "New Part"
 TOOLTIP = "Create a numbered, linked part or subassembly in the right project folder."
 
-PICK_PROMPT = "(pick to fill Noun)"
 NEW_NUMBER = "(new number)"
 
 _state = {}
@@ -83,15 +83,7 @@ class CreatedHandler(adsk.core.CommandCreatedEventHandler):
                 src.listItems.add(t, i == 0)
 
             g = inputs.addGroupCommandInput("grpName", "Name (noun first)").children
-            dd = g.addDropDownCommandInput("nounPick", "Common nouns",
-                                           adsk.core.DropDownStyles.TextListDropDownStyle)
-            dd.listItems.add(PICK_PROMPT, True)
-            for noun in nl.COMMON_NOUNS:
-                dd.listItems.add(noun, False)
-            g.addStringValueInput("noun", "Noun", "")
-            g.addStringValueInput("mod1", "Modifier 1", "")
-            g.addStringValueInput("mod2", "Modifier 2", "")
-            g.addStringValueInput("mod3", "Modifier 3", "")
+            npk.add_name_inputs(g)
             hd = g.addDropDownCommandInput("hand", "Hand (mirror parts)",
                                            adsk.core.DropDownStyles.TextListDropDownStyle)
             for i, h in enumerate(nl.HANDS):
@@ -139,11 +131,8 @@ class InputChangedHandler(adsk.core.InputChangedEventHandler):
             changed = args.input
             inputs = uh.all_inputs(args)
             _state["updating"] = True
-            if changed.id == "nounPick":
-                item = changed.selectedItem
-                if item and item.name != PICK_PROMPT:
-                    find(inputs, "noun").value = item.name
-                    changed.listItems.item(0).isSelected = True
+            if npk.handle_change(inputs, changed):
+                pass
             elif changed.id in ("code", "hand"):
                 _rebuild_mates(inputs)
                 find(inputs, "pn").value = _suggest_pn(inputs)

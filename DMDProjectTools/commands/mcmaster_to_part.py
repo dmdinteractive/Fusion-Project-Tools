@@ -26,13 +26,13 @@ import adsk.fusion
 from ..lib import naming_logic as nl
 from ..lib import fusion_data as fd
 from ..lib import ui_helpers as uh
+from ..lib import name_pickers as npk
 from ..lib.ui_helpers import find, val, text
 
 CMD_ID = "dmdMcMasterToPart"
 CMD_NAME = "McMaster to Part"
 TOOLTIP = "Turn an inserted McMaster-Carr part into its own numbered part file in 03 PURCHASED."
 
-PICK_PROMPT = "(pick to fill Noun)"
 PURCHASED = "Purchased"
 
 _state = {}
@@ -70,15 +70,7 @@ class CreatedHandler(adsk.core.CommandCreatedEventHandler):
             inputs.addTextBoxCommandInput("found", "", "", 2, True)
 
             g = inputs.addGroupCommandInput("grpName", "Name (noun first)").children
-            dd = g.addDropDownCommandInput("nounPick", "Common nouns",
-                                           adsk.core.DropDownStyles.TextListDropDownStyle)
-            dd.listItems.add(PICK_PROMPT, True)
-            for noun in nl.COMMON_NOUNS:
-                dd.listItems.add(noun, False)
-            g.addStringValueInput("noun", "Noun", "")
-            g.addStringValueInput("mod1", "Modifier 1", "")
-            g.addStringValueInput("mod2", "Modifier 2", "")
-            g.addStringValueInput("mod3", "Modifier 3", "")
+            npk.add_name_inputs(g)
 
             g = inputs.addGroupCommandInput("grpPN", "Part number").children
             g.addStringValueInput("code", "Project code", code)
@@ -124,11 +116,8 @@ class InputChangedHandler(adsk.core.InputChangedEventHandler):
                 _find_existing(inputs)
             elif changed.id == "code":
                 find(inputs, "pn").value = _suggest_pn(inputs)
-            elif changed.id == "nounPick":
-                item = changed.selectedItem
-                if item and item.name != PICK_PROMPT:
-                    find(inputs, "noun").value = item.name
-                    changed.listItems.item(0).isSelected = True
+            elif npk.handle_change(inputs, changed):
+                pass
             _refresh(inputs)
         except Exception:
             uh.show_error(CMD_NAME)

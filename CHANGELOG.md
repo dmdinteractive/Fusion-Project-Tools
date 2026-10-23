@@ -2,6 +2,20 @@
 
 Versions match `"version"` in `DMDProjectTools/DMDProjectTools.manifest`.
 
+## 2.6.0
+- **Smarter drop-downs** in Part Namer, New Part and McMaster to Part:
+  - Each Modifier box has a **Suggestions** drop-down above it that follows the noun
+    (PANEL offers SIDE, ACCESS, GRAPHIC ...; SCREW offers SOCKET HEAD, 1/4-20, M4 ...).
+    Words already used in another modifier box are left out. You can still type anything.
+  - Bigger noun list (about 90 part nouns). Assembly files get assembly nouns first
+    (KIOSK, CABINET, PEDESTAL ...).
+  - **Reference view** drop-down in Part Namer and New Project.
+- **Your own word lists:** the "Edit my word lists" button opens `My Word Lists.txt`
+  (in a `DMD Project Tools` folder in your home folder, so add-in updates never touch it).
+  Add nouns, modifiers for any noun, reference views, or hide built-in words.
+- Descriptions with both a hand and a location show the reference view once:
+  `LH, LOC: NEAR PHONE (PER REF VIEW: VIEWED FROM VISITOR SIDE)`.
+
 ## 2.5.0
 - New **McMaster to Part** button: turns a McMaster-Carr part inserted into a Hybrid
   assembly into its own numbered part file in `03 PURCHASED` (McMaster number in the

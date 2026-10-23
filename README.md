@@ -63,6 +63,18 @@ The same `DMDProjectTools` folder works on Mac and Windows. Only where you put i
 
 Needs a current Fusion. New Part uses a January 2026 API.
 
+## Drop-downs and your own word lists
+
+Fusion has no "type or pick" box, so every naming field has a drop-down right above it:
+pick a word to fill the box, or type in the box yourself. The **Suggestions** drop-downs
+above each Modifier change with the noun.
+
+To add your own words, click **Edit my word lists** in any naming dialog. It opens
+`My Word Lists.txt` in your home folder's `DMD Project Tools` folder (created the first
+time). One word per line, under headings like `[NOUNS]`, `[MODIFIERS: PANEL]`,
+`[REFERENCE VIEWS]` or `[HIDE]`. Changes show up next time you open a dialog. The built-in
+lists live in `DMDProjectTools/lib/word_lists.py`.
+
 ## Everyday workflow
 
 1. **New Project** > "Create a new project". Enter organization (`CMD`), project code

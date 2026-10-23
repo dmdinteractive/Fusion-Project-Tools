@@ -25,13 +25,13 @@ import adsk.fusion
 from ..lib import naming_logic as nl
 from ..lib import fusion_data as fd
 from ..lib import ui_helpers as uh
+from ..lib import name_pickers as npk
 from ..lib.ui_helpers import find, val, text, set_choice
 
 CMD_ID = "dmdPartNamer"
 CMD_NAME = "Part Namer"
 TOOLTIP = "Name this part or assembly noun-first, with a project part number and BOM description."
 
-PICK_PROMPT = "(pick to fill Noun)"
 NEW_NUMBER = "(new number)"
 KEEP_MATERIAL = "(keep current material)"
 
@@ -120,21 +120,14 @@ class CreatedHandler(adsk.core.CommandCreatedEventHandler):
 
             # --- Reference view ------------------------------------------
             g = inputs.addGroupCommandInput("grpRef", "Reference view (project)").children
-            ref = g.addStringValueInput("refView", "Reference view",
-                                        fd.reference_view(design, project, code))
+            current_ref = fd.reference_view(design, project, code)
+            npk.add_ref_view_picker(g, current_ref)
+            ref = g.addStringValueInput("refView", "Reference view", current_ref)
             ref.tooltip = "How LH/RH and locations are judged. Set once in New Project."
 
             # --- Name -----------------------------------------------------
             g = inputs.addGroupCommandInput("grpName", "Name (noun first)").children
-            dd = g.addDropDownCommandInput("nounPick", "Common nouns",
-                                           adsk.core.DropDownStyles.TextListDropDownStyle)
-            dd.listItems.add(PICK_PROMPT, True)
-            for noun in nl.COMMON_NOUNS:
-                dd.listItems.add(noun, False)
-            g.addStringValueInput("noun", "Noun", "")
-            g.addStringValueInput("mod1", "Modifier 1", "")
-            g.addStringValueInput("mod2", "Modifier 2", "")
-            g.addStringValueInput("mod3", "Modifier 3", "")
+            npk.add_name_inputs(g, assembly=kind == "assembly")
             asm = g.addBoolValueInput("asmWord", "Add ASSEMBLY after the noun", True, "",
                                       kind == "assembly" and not top)   # top-level = exhibit name
             asm.isVisible = kind == "assembly"
@@ -256,11 +249,8 @@ class InputChangedHandler(adsk.core.InputChangedEventHandler):
 
             if changed.id == "sel":
                 _load_from_selection(inputs)
-            elif changed.id == "nounPick":
-                item = changed.selectedItem
-                if item and item.name != PICK_PROMPT:
-                    find(inputs, "noun").value = item.name
-                    changed.listItems.item(0).isSelected = True
+            elif npk.handle_change(inputs, changed):
+                pass
             elif changed.id in ("code", "hand"):
                 _rebuild_mates(inputs)
                 find(inputs, "pn").value = _suggest_pn(inputs)
@@ -432,10 +422,9 @@ def _description(inputs):
         sections.append((val(inputs, "size"), True))
     if val(inputs, "incMass"):
         sections.append((val(inputs, "mass"), True))
-    ref_view = val(inputs, "refView")
-    sections.append((nl.hand_text(val(inputs, "hand"), ref_view), False))
-    if val(inputs, "incLocation"):
-        sections.append((nl.location_text(val(inputs, "location"), ref_view), False))
+    location = val(inputs, "location") if val(inputs, "incLocation") else ""
+    sections.append((nl.hand_location_text(val(inputs, "hand"), location,
+                                           val(inputs, "refView")), False))
     sections.append((val(inputs, "notes"), False))
     if _is_purchased(inputs):
         sections.append((nl.vendor_text(val(inputs, "vendor"), val(inputs, "vendorName"),
@@ -572,6 +561,7 @@ def _load(inputs, comp):
     find(inputs, "noun").value = noun
     for i, m in enumerate(mods, start=1):
         find(inputs, "mod{}".format(i)).value = m
+    npk.refresh_modifiers(inputs)
 
     for existing in (comp.partNumber, source_name):
         _, pn_hand = nl.parse_part_number(existing, code)

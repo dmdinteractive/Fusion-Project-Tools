@@ -21,6 +21,7 @@ import adsk.fusion
 from ..lib import naming_logic as nl
 from ..lib import fusion_data as fd
 from ..lib import ui_helpers as uh
+from ..lib import name_pickers as npk
 from ..lib.ui_helpers import find, val, text
 
 CMD_ID = "dmdNewProject"
@@ -68,6 +69,7 @@ class CreatedHandler(adsk.core.CommandCreatedEventHandler):
             g.addBoolValueInput("rename", "Rename project to the standard format", True, "", True)
 
             g = inputs.addGroupCommandInput("grpRef", "Reference view").children
+            npk.add_ref_view_picker(g)
             ref = g.addStringValueInput("refView", "Reference view", "")
             ref.tooltip = "The one viewpoint LH/RH and locations are judged from."
             ref.tooltipDescription = "Example: VIEWED FROM VISITOR SIDE, GRAPHIC FACE TOWARD YOU"
@@ -98,6 +100,8 @@ class InputChangedHandler(adsk.core.InputChangedEventHandler):
             _state["updating"] = True
             if args.input.id == "mode":
                 _load_mode(inputs)
+            elif args.input.id == "refPick":
+                npk.handle_change(inputs, args.input)
             _refresh(inputs)
         except Exception:
             uh.show_error("New Project")

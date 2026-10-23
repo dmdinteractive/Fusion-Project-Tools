@@ -6,7 +6,7 @@
     "description": {
         "": "DMD Project Tools: standard project folders, numbered parts, noun-first BOM naming, materials, shared parameters, and McMaster-Carr parts as their own files."
     },
-    "version": "2.5.0",
+    "version": "2.6.0",
     "runOnStartup": true,
     "supportedOS": "windows|mac",
     "editEnabled": true

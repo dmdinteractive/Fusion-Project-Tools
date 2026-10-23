@@ -412,15 +412,21 @@ def note_params_file(project, data_file):
 
 
 def read_parameters(design):
-    """[{name, expression, unit, comment}] for every user parameter."""
+    """[{name, expression, unit, comment, value}] for every user parameter.
+    value is the evaluated number in Fusion's internal units (cm for lengths),
+    used as a stand-in while a part is missing a parameter an expression needs."""
     out = []
     for p in as_list(design.userParameters):
         try:
             comment = p.comment
         except Exception:
             comment = ""
+        try:
+            value = p.value
+        except Exception:
+            value = None
         out.append({"name": p.name, "expression": p.expression,
-                    "unit": p.unit, "comment": comment})
+                    "unit": p.unit, "comment": comment, "value": value})
     return out
 
 
@@ -438,11 +444,15 @@ def load_params_cache(project):
         return None
 
 
-def save_params_cache(project, params):
+def save_params_cache(project, params, version=0):
+    """version = the parameters file's version number these values came from
+    (0 if unknown). Parts trust the cache only while the file hasn't moved
+    past that version."""
     try:
         os.makedirs(CACHE_DIR, exist_ok=True)
         with open(_params_cache_path(project), "w", encoding="utf-8") as fh:
-            json.dump({"saved": time.strftime("%Y-%m-%d %H:%M"), "params": params}, fh)
+            json.dump({"saved": time.strftime("%Y-%m-%d %H:%M"), "version": version or 0,
+                       "params": params}, fh)
     except Exception:
         pass
 

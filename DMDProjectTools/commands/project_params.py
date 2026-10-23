@@ -1,10 +1,12 @@
 """
 project_params.py - the Project Parameters button.
 
-Shares dimensions across all the part files in a project, using Fusion's
-own method: one master file holds the parameters as favorites, and each
-part Derives them. Change a value here, and every linked part shows as out
-of date; click Fusion's Update button in a part and it resizes.
+Shares dimensions across all the part files in a project. One file holds
+the project's parameters; lib/param_sync.py copies them into each part as
+ordinary parameters and keeps the values matching. A part catches up when
+it's opened, and the part you have open catches up as soon as you Apply.
+(Before 2.6 this used Fusion's Derive, which never brought parameters added
+later into parts that were already linked.)
 
     CMD-HELLO - Hello Exhibit
       00 ASSEMBLY
@@ -16,7 +18,8 @@ What the dialog does:
     The master file is opened in the background, edited, saved, and closed.
     Every parameter in it is kept marked as a favorite, because un-favoriting
     one silently breaks the link in every part.
-  - Links the open part to the project parameters (one Derive, favorites only).
+  - Updates the open part right away (parts that are closed update when
+    they're next opened).
 """
 
 import adsk.core
@@ -25,7 +28,7 @@ import adsk.fusion
 from ..lib import naming_logic as nl
 from ..lib import fusion_data as fd
 from ..lib import ui_helpers as uh
-from ..lib import auto_params
+from ..lib import param_sync
 from ..lib.ui_helpers import find, val, text
 
 CMD_ID = "dmdProjectParams"
@@ -72,11 +75,15 @@ class CreatedHandler(adsk.core.CommandCreatedEventHandler):
             code = fd.get_design_setting(design, "code") or fd.project_code(project)
             master = fd.find_params_file(project, code) if code else None
             is_master = bool(master and doc.isSaved and doc.dataFile.id == master.id)
+            try:
+                eligible = (not is_master) and param_sync.target(doc) is not None
+            except Exception:
+                eligible = False
             _state.clear()
             _state.update({
                 "updating": False, "project": project, "code": code, "doc": doc,
                 "kind": _kind(design), "master": master, "is_master": is_master,
-                "linked": bool(fd.get_design_setting(design, "paramsLinked")),
+                "eligible": eligible,
                 "params": [],
             })
 
@@ -107,9 +114,8 @@ class CreatedHandler(adsk.core.CommandCreatedEventHandler):
 
             g = inputs.addGroupCommandInput("grpLink", "This file").children
             g.addTextBoxCommandInput("linkInfo", "", "", 3, True)
-            link = g.addBoolValueInput("link", "Link this file to project parameters",
-                                       True, "", True)
-            link.isVisible = _can_link()
+            link = g.addBoolValueInput("link", "Update this file now", True, "", True)
+            link.isVisible = _state["eligible"]
 
             inputs.addTextBoxCommandInput("status", "", "", 2, True)
 
@@ -191,8 +197,9 @@ def _apply(job):
     project = job["project"]
     notes = []
     created = opened_here = False
+    known = param_sync.latest_version(job["master"]) if job["master"] else 0
 
-    # 1. Get the master parameters file (open in the background, or create it).
+    # 1. Get the parameters file (open in the background, or create it).
     if job["is_master"]:
         mdoc = origin
     elif job["master"] is None:
@@ -210,7 +217,8 @@ def _apply(job):
 
     changed = False
     try:
-        # 2. Add or change the parameter; keep every parameter a favorite.
+        # 2. Add or change the parameter. Every parameter stays a favorite so
+        #    parts still linked the old way (Derive) keep working.
         if job["edit"]:
             notes.append(_set_parameter(mdesign, job))
             changed = True
@@ -218,15 +226,11 @@ def _apply(job):
             if not p.isFavorite:
                 p.isFavorite = True
                 changed = True
+        version = known
         if changed:
             mdoc.save("Project parameters: " + (job["name"] or "favorites"))
-        params = fd.read_parameters(mdesign)
-        fd.save_params_cache(project, params)
-
-        # 3. Link the file the user is in.
-        if job["link"]:
-            origin.activate()
-            notes.append(_link(origin, mdesign, mdoc, params))
+            version = param_sync.saved_version(mdoc, known)
+        fd.save_params_cache(project, fd.read_parameters(mdesign), version)
     finally:
         # never leave the parameters file open in the background
         if opened_here:
@@ -235,10 +239,16 @@ def _apply(job):
             origin.activate()
         except Exception:
             pass
+
+    # 3. Bring the file the user is in up to date.
+    if job["link"]:
+        report = param_sync.sync_document(origin, quiet=False)
+        if report is not None:
+            done = param_sync.summary(report)
+            notes.append("This file: " + (done or "already up to date") + ".")
     if changed and not created:
-        notes.append("Linked parts now show as out of date. Open one and click Update "
-                     "(or the out-of-date icon) to pull in the new values; they're "
-                     "starred for you automatically.")
+        notes.append("Other parts pick up the new values the next time they're opened. "
+                     "Then update assemblies (the out-of-date icon) to see them there.")
     fd.ui().messageBox("\n\n".join(n for n in notes if n), CMD_NAME)
 
 
@@ -280,15 +290,6 @@ def _set_parameter(design, job):
                            .format(job["name"], job["expression"], exc))
 
 
-def _link(origin, mdesign, mdoc, params):
-    design = adsk.fusion.Design.cast(origin.products.itemByProductType("DesignProductType"))
-    if not auto_params.link_design(design, mdesign, mdoc.dataFile if mdoc.isSaved else None):
-        return "Fusion couldn't link this file. Use Insert > Derive and pick the parameters file."
-    names = sorted(p["name"] for p in params)
-    return ("Linked this file to the project parameters. Type a name like {} into any "
-            "dimension.".format(names[0] if names else "ply_thickness"))
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -298,27 +299,23 @@ def _code(inputs):
 
 
 def _load_params():
-    """Live from the master if it's the open file, otherwise the list this
-    add-in saved last time; only if neither exists is the master opened."""
+    """Live from the parameters file if it's the open file; otherwise the
+    saved values if the file hasn't changed since (it's opened in the
+    background only when it has)."""
     project = _state["project"]
     if _state["is_master"]:
         _state["params"] = fd.read_parameters(_design())
-        fd.save_params_cache(project, _state["params"])
         return
-    cache = fd.load_params_cache(project)
-    if cache is not None:
-        _state["params"] = cache.get("params", [])
-        _state["cache_time"] = cache.get("saved", "")
+    if _state["master"] is None or not _state["code"]:
         return
-    if _state["master"] is not None:
-        mdoc, opened_here = fd.open_document(_state["master"], False)
-        if mdoc:
-            mdesign = adsk.fusion.Design.cast(mdoc.products.itemByProductType("DesignProductType"))
-            _state["params"] = fd.read_parameters(mdesign)
-            fd.save_params_cache(project, _state["params"])
-            if opened_here:
-                mdoc.close(False)
-            _state["doc"].activate()
+    params, _ = param_sync.project_values(project, _state["code"])
+    _state["params"] = params or []
+    cache = fd.load_params_cache(project) or {}
+    _state["cache_time"] = cache.get("saved", "")
+    try:
+        _state["doc"].activate()
+    except Exception:
+        pass
 
 
 def _fill_from_pick(inputs):
@@ -353,11 +350,6 @@ def _expression(inputs):
 
 def _edit_wanted(inputs):
     return bool(text(inputs, "name") or text(inputs, "value"))
-
-
-def _can_link():
-    return (not _state["is_master"] and not _state["linked"]
-            and _state["kind"] in ("part", "hybrid"))
 
 
 def _link_wanted(inputs):
@@ -396,8 +388,7 @@ def _refresh(inputs):
     if not lines:
         lines = ["No project parameters yet."]
     elif _state.get("cache_time") and not _state["is_master"]:
-        lines.append("(as of {}; edits made directly in the parameters file "
-                     "show here after the next Apply)".format(_state["cache_time"]))
+        lines.append("(values as of {})".format(_state["cache_time"]))
     find(inputs, "list").text = "\n".join(lines)
 
     cleaned = nl.clean_param_name(text(inputs, "name"))
@@ -408,13 +399,14 @@ def _refresh(inputs):
 
     if _state["is_master"]:
         link_text = "This is the project parameters file."
-    elif _state["linked"]:
-        link_text = ("Linked. After parameters change, click Update (the out-of-date icon) "
-                     "in this file; new parameters are starred automatically.")
+    elif _state["eligible"]:
+        link_text = ("Gets the project parameters automatically whenever it's opened. "
+                     "Leave the box ticked to update it now as well.")
     elif _state["kind"] == "assembly":
-        link_text = ("Assembly files can't hold features, so they can't be linked. "
-                     "Link the parts instead.")
+        link_text = ("Assembly files can't hold features, so they don't get parameters. "
+                     "The parts inside them do.")
     else:
-        link_text = "Not linked yet."
+        link_text = ("This file doesn't get project parameters automatically: only parts "
+                     "in 02 FABRICATED and Hybrid designs do (and the file must be saved).")
     find(inputs, "linkInfo").text = link_text
     find(inputs, "status").text = "  ".join(_problems(inputs))

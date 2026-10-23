@@ -2,6 +2,19 @@
 
 Versions match `"version"` in `DMDProjectTools/DMDProjectTools.manifest`.
 
+## 2.6.0
+- **Project parameters are copied into parts instead of Derived.** Fusion's Derive never
+  brought parameters added to the project later into parts that were already linked.
+  Now, whenever a part in `02 FABRICATED` or a Hybrid design is opened, missing
+  parameters are added, changed values are updated, everything is starred, and the part
+  is saved (unless it had unsaved edits).
+- Parts linked with Derive in earlier versions keep their link; only the parameters they're
+  missing are added, and the Derive is moved to the newest parameters file on open.
+- Project Parameters updates the open part immediately after Apply.
+- Saving the parameters file directly refreshes the saved values, so the dialog's list is
+  no longer out of date after hand edits.
+- `lib/auto_params.py` replaced by `lib/param_sync.py`.
+
 ## 2.5.0
 - New **McMaster to Part** button: turns a McMaster-Carr part inserted into a Hybrid
   assembly into its own numbered part file in `03 PURCHASED` (McMaster number in the

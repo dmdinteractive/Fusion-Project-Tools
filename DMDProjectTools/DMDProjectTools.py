@@ -18,7 +18,7 @@ import traceback
 import adsk.core
 
 from .lib import ui_helpers as uh
-from .lib import auto_params
+from .lib import param_sync
 from .commands import new_project, new_part, part_namer, project_params, mcmaster_to_part
 
 PANEL_ID = "SolidScriptsAddinsPanel"          # Utilities > ADD-INS
@@ -44,7 +44,7 @@ def run(context):
         app = adsk.core.Application.get()
         ui = app.userInterface
         uh.start_deferred()
-        auto_params.start()         # keeps project parameters starred and linked
+        param_sync.start()          # copies project parameters into parts when opened
         panel = _panel(ui)
         for module, icons in COMMANDS:
             uh.add_button(module.CMD_ID, module.CMD_NAME, module.TOOLTIP, icons,
@@ -60,7 +60,7 @@ def stop(context):
         panel = _panel(ui)
         for module, _ in COMMANDS:
             uh.remove_button(module.CMD_ID, panel)
-        auto_params.stop()
+        param_sync.stop()
         uh.stop_deferred()
     except Exception:
         pass

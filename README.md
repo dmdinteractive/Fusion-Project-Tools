@@ -8,7 +8,7 @@ from separate part and assembly files.
 |---|---|---|
 | **New Project** | Anywhere | Creates `CMD-HELLO - Hello Exhibit` with the standard folders and an empty top-level Assembly `CMD-HELLO-000 HELLO EXHIBIT`. Can also bring an existing project up to standard. |
 | **New Part** | An assembly | Creates the next numbered linked part (or subassembly) in the right folder, e.g. `CMD-HELLO-015 BRACKET, MOTOR MOUNT, LH` in `02 FABRICATED`. |
-| **Project Parameters** | A part file | Shared dimensions (`ply_thickness`, `exhibit_width`...) that every linked part follows. |
+| **Project Parameters** | Any project file | Shared dimensions (`ply_thickness`, `exhibit_width`...) copied into every fabricated part and kept matching. |
 | **McMaster to Part** | A Hybrid assembly | Turns an inserted McMaster-Carr part into its own numbered part file in `03 PURCHASED` and swaps it in. |
 | **Part Namer** | A part or assembly file | Sets name, part number, BOM description (and material for parts). Renames and files it to match. |
 
@@ -127,12 +127,18 @@ linked subassembly can't be swapped from here; the message tells you if any were
 
 ## Shared parameters
 
-Project Parameters uses Fusion's own way of sharing dimensions between separate part
-files: one master file holds them as *favorites*, and each part *Derives* them.
+Each project keeps its shared dimensions in one file, `CMD-HELLO PARAMETERS` in
+`00 ASSEMBLY`. The add-in copies them into each part as ordinary parameters and keeps
+their values matching that file.
+
+(Before 2.6 the tool linked parts with Fusion's *Derive*. Derive only brings in the
+parameters that exist when a part is first linked, so parameters added later never
+reached older parts. Copying avoids that.)
 
 **Adding or changing one:** open any file in the project, click Project Parameters, type a
 name and value, and click Apply. The tool opens `CMD-HELLO PARAMETERS` in the background
-(it creates it the first time), saves the change, and closes it again.
+(it creates it the first time), saves the change, and closes it again. If the file you're
+in is a part, it's updated straight away.
 
 - **Names describe the role:** `ply_thickness`, `exhibit_width`, `kerf`. Whatever you type
   is cleaned to that style (`Ply Thickness` becomes `ply_thickness`). A decimal point
@@ -140,42 +146,46 @@ name and value, and click Apply. The tool opens `CMD-HELLO PARAMETERS` in the ba
 - **Values:** a plain number gets the chosen units (`0.75` with "in" is saved as
   `0.75 in`). Expressions work too: `exhibit_width / 2`. Pick "(no units)" for counts.
 - To change one, pick it from the **Parameter** list, edit the value, and Apply.
+- You can also edit `CMD-HELLO PARAMETERS` directly (Modify > Change Parameters) and save it.
 
-**Using them in a part: nothing to set up.** Once a project has a parameters file, the
-add-in handles parts in the background:
+**Using them in a part: nothing to set up.** Whenever you open (or switch to) a part, the
+add-in:
 
-- **Opening a fabricated part** (in `02 FABRICATED`) that isn't linked yet links it.
-- **New Part** links each new fabricated part a few seconds after creating it, so the
-  parameters are there when you Edit in Place.
-- **Every project parameter is starred for you** whenever you open or switch to a part
-  and after every Update, including parameters added to the project later. Just type
-  `ply_thickness` into any dimension.
+1. adds any project parameter the part doesn't have yet,
+2. changes any value that differs from the parameters file,
+3. stars them, so typing `ply_thickness` into a dimension box finds it,
+4. saves the part if anything changed. If the part already had unsaved edits of yours,
+   it leaves saving to you.
 
-Purchased parts (`03 PURCHASED`) aren't linked automatically, since bought parts don't
-use your dimensions. You can still link one with the Project Parameters button. Each
-automatic step is logged in View > Show Text Commands (`DMD Tools: starred 2 project
-parameter(s) in ...`).
+**New Part** adds the parameters to each new fabricated part a few seconds after creating
+it, so they're there when you Edit in Place.
 
-**When a value changes:** linked parts show as *out of date*. Open the part and click
-Update (the out-of-date icon in the top bar) and its geometry resizes. The tool never
-updates part geometry by itself.
+**Which files get them:** parts in `02 FABRICATED`, and Hybrid designs in any folder
+except `03 PURCHASED`, `04 DRAWINGS` and `99 ARCHIVE`. Assembly files can't hold
+features, so they don't get parameters; the parts inside them do.
+
+**When a value changes:** each part picks up the new value the next time it's opened.
+Parts you don't open keep their old values until then. After a part updates, its
+assemblies show as out of date; click Update (the out-of-date icon) in the assembly.
 
 **Good to know:**
-- Assembly files can't hold features, so link the **parts**, not the assemblies.
-- Changing any one parameter marks *every* linked part out of date, even ones that don't
-  use it. That's how Fusion's Derive works.
-- Every parameter in the master file is kept as a favorite. Un-favoriting one would break
-  its link in every part without any warning, so the tool re-favorites anything it finds
-  un-favorited.
-- The tool doesn't delete parameters, since parts may be using them. To remove one,
-  open `CMD-HELLO PARAMETERS` and use Modify > Change Parameters.
-- Starring a parameter counts as a change to the part, so Fusion may show the part as
-  modified after it's opened. Save as usual.
-- Settings for the automatic behavior are at the top of `DMDProjectTools/lib/auto_params.py`:
-  `AUTO_LINK` (turn automatic linking off) and `AUTO_LINK_FOLDERS` (which folders
-  are linked).
-- The list in the dialog is the last one the tool saw. If you edit the parameters file
-  by hand, the list catches up after the next Apply, or run the button inside that file.
+- **The parameters file always wins.** If you change a project parameter's value inside a
+  part, it's set back the next time that part is opened. Make your own part-only
+  parameters with a different name.
+- **Parts linked the old way (Derive) keep working.** Parameters that already come through
+  their Derive are left to it, and the Derive is moved to the newest version of the
+  parameters file when the part opens. Only the parameters it's missing are added. The
+  parameters file keeps everything as a favorite so those older links don't break.
+- The tool never deletes a parameter, since features may use it. Renaming a parameter in
+  the parameters file adds the new name to parts; the old one stays until you delete it.
+- The tool remembers the values in `DMDProjectTools/cache`, along with the parameters
+  file's version, so it only reopens that file when it has changed. An edit made on another
+  computer reaches this one within about 5 minutes.
+- Every automatic step is logged in View > Show Text Commands (`DMD Tools: CMD-HELLO-015
+  ...: added kerf; updated ply_thickness (saved)`). If a value can't be added (for
+  example, an expression that uses a name that doesn't exist), a message says which one.
+- Settings are at the top of `DMDProjectTools/lib/param_sync.py`: `SYNC_FOLDERS`,
+  `SYNC_HYBRID`, `NEVER_FOLDERS` and `AUTO_SAVE`.
 
 ## Materials
 
@@ -231,7 +241,7 @@ Everything is in `DMDProjectTools/lib/naming_logic.py`:
 - `commands/new_project.py`, `commands/new_part.py`, `commands/part_namer.py`: one per button
 - `DMDProjectTools/lib/naming_logic.py`: the naming rules (no Fusion code, safe to edit)
 - `DMDProjectTools/commands/mcmaster_to_part.py`: the McMaster to Part button
-- `DMDProjectTools/lib/auto_params.py`: links parts and stars project parameters in the background
+- `DMDProjectTools/lib/param_sync.py`: copies project parameters into parts when they're opened
 - `DMDProjectTools/lib/fusion_data.py`: finds projects, folders, files, part numbers and materials in Fusion
 - `lib/ui_helpers.py`: shared dialog plumbing. It also runs file work after a dialog closes,
   because Fusion won't save, create or rename files while a dialog is open.

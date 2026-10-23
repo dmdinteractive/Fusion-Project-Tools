@@ -20,7 +20,7 @@ import adsk.fusion
 from ..lib import naming_logic as nl
 from ..lib import fusion_data as fd
 from ..lib import ui_helpers as uh
-from ..lib import auto_params
+from ..lib import param_sync
 from ..lib.ui_helpers import find, val, text
 
 CMD_ID = "dmdNewPart"
@@ -210,9 +210,9 @@ def _create(job):
         doc.save("Added " + job["fname"])
         fd.note_new_file(job["project"], job["fname"])
         params_note = ""
-        if job["folder"] in auto_params.AUTO_LINK_FOLDERS and auto_params.expect_new_part(
+        if job["folder"] in param_sync.SYNC_FOLDERS and param_sync.expect_new_part(
                 job["fname"], job["project"], job["code"], doc):
-            params_note = ("\n\nIt will be linked to the project parameters as soon as Fusion "
+            params_note = ("\n\nThe project parameters will be added to it as soon as Fusion "
                            "finishes uploading it (a few seconds).")
         fd.ui().messageBox(
             "Created {}\nin {}.\n\nRight-click it > Edit in Place to model it, then open it "
